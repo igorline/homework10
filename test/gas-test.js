@@ -17,7 +17,7 @@ describe("Gas1", function () {
       // "0xeadb3d065f8d15cc05e92594523516aD36d1c834",
       // owner.address,
     ];
-    gasContract = await huffDeployer.deploy("Gas", [admins, 10000]);
+    gasContract = await huffDeployer.deploy("GasCarl", [admins, 10000]);
     await gasContract.deployed();
     gasContract = await ethers.getContractAt("IGasCorrect", gasContract.address);
   });

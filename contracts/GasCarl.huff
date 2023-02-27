@@ -1,5 +1,5 @@
 // Imports
-#include "../lib/huffmate/src/data-structures/Hashmap.huff"
+#include "./Hashmap.huff"
 
 // Interface
 #define function balanceOf(address) view returns (uint256)
@@ -11,6 +11,7 @@
 #define function getPayments(address) view returns () // return array of structs
 #define function getTradingMode() view returns (bool) // return array of structs
 #define function addToWhitelist(address, uint256) view returns () // return array of structs
+#define function whitelist(address) view returns (uint256) // return array of structs
 // #define function whiteTransfer(address, uint256, ) view returns () // return array of structs
 
 // Events
@@ -19,8 +20,7 @@
 #define constant TOTAL_SUPPLY = 0x2710
 // Storage
 #define constant BALANCE_SLOT = FREE_STORAGE_POINTER()
-#define constant WHITELIST = FREE_STORAGE_POINTER()
-#define constant OWNER = FREE_STORAGE_POINTER()
+#define constant WHITELIST_SLOT = FREE_STORAGE_POINTER()
 
 
 // @notice Constructor
@@ -28,8 +28,6 @@
   // [TOTAL_SUPPLY]                                  // [10000]
   // caller                                          // [msg.sender, 10000]
   // [BALANCE_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)    // []
-
-  caller [OWNER_SLOT] sstore                      // []
 }
 
 // @notice Balance of
@@ -41,67 +39,67 @@
 }
 
 // @notice Owner
-#define macro OWNER() = takes (0) returns (0) {
-  [OWNER_SLOT] sload                              // [owner]
-  0x00 mstore                                     // []
-  0x20 0x00 return                                // []
-}
+// #define macro OWNER() = takes (0) returns (0) {
+  // [OWNER_SLOT] sload                              // [owner]
+  // 0x00 mstore                                     // []
+  // 0x20 0x00 return                                // []
+// }
+
+// @notice Administrators
+// #define macro ADMINISTRATORS() = takes (0) returns (0) {
+  // 0x04 calldataload                                             // [index]
+
+  // dup1 0x0 eq addr0Jump jumpi
+  // dup1 0x1 eq addr1Jump jumpi
+  // dup1 0x2 eq addr2Jump jumpi
+  // dup1 0x3 eq addr3Jump jumpi
+  // // dup1 0x4 eq addr4Jump jumpi
+
+  // default:
+    // [OWNER_SLOT] sload                              // []
+    // 0x00 mstore
+    // 0x20 0x00 return                                // []
+
+  // addr0Jump:
+    // 0x3243Ed9fdCDE2345890DDEAf6b083CA4cF0F68f2      // []
+    // 0x00 mstore
+    // 0x20 0x00 return                                // []
+
+  // addr1Jump:
+    // 0x2b263f55Bf2125159Ce8Ec2Bb575C649f822ab46      // []
+    // 0x00 mstore
+    // 0x20 0x00 return                                // []
+
+  // addr2Jump:
+    // 0x0eD94Bc8435F3189966a49Ca1358a55d871FC3Bf      // []
+    // 0x00 mstore
+    // 0x20 0x00 return                                // []
+
+  // addr3Jump:
+    // 0xeadb3d065f8d15cc05e92594523516aD36d1c834      // []
+    // 0x00 mstore
+    // 0x20 0x00 return                                // []
+// }
 
 // @notice Administrators
 #define macro ADMINISTRATORS() = takes (0) returns (0) {
   0x04 calldataload                                             // [index]
 
-  dup1 0x0 eq addr0Jump jumpi
-  dup1 0x1 eq addr1Jump jumpi
-  dup1 0x2 eq addr2Jump jumpi
-  dup1 0x3 eq addr3Jump jumpi
-  // dup1 0x4 eq addr4Jump jumpi
-
-  default:
-    [OWNER_SLOT] sload                              // []
-    0x00 mstore
-    0x20 0x00 return                                // []
-
-  addr0Jump:
-    0x3243Ed9fdCDE2345890DDEAf6b083CA4cF0F68f2      // []
-    0x00 mstore
-    0x20 0x00 return                                // []
-
-  addr1Jump:
-    0x2b263f55Bf2125159Ce8Ec2Bb575C649f822ab46      // []
-    0x00 mstore
-    0x20 0x00 return                                // []
-
-  addr2Jump:
-    0x0eD94Bc8435F3189966a49Ca1358a55d871FC3Bf      // []
-    0x00 mstore
-    0x20 0x00 return                                // []
-
-  addr3Jump:
-    0xeadb3d065f8d15cc05e92594523516aD36d1c834      // []
-    0x00 mstore
-    0x20 0x00 return                                // []
-}
-
-// @notice Administrators
-#define macro ADMINISTRATORS2() = takes (0) returns (0) {
-  0x04 calldataload                                             // [index]
-
-  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-  0x00 mstore
 
   0x3243Ed9fdCDE2345890DDEAf6b083CA4cF0F68f2
-  0x20 mstore
+  0x00 mstore
 
   0x2b263f55Bf2125159Ce8Ec2Bb575C649f822ab46
-  0x40 mstore
+  0x20 mstore
 
   0x0eD94Bc8435F3189966a49Ca1358a55d871FC3Bf
-  0x60 mstore
+  0x40 mstore
 
   0xeadb3d065f8d15cc05e92594523516aD36d1c834
-  0x80 mstore
+  0x60 mstore
 
+  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  0x80 mstore
 
   0x20 // [0x20, index]
   mul // [0x20 * index]
@@ -138,10 +136,20 @@
     _TRANSFER_GIVE_TO()         // [value, from, to]
 }
 
+#define macro _TRANSFER_TAKE_FROM() = takes (3) returns (3) {
+    // input stack: [value, from, to]
+    dup2 [BALANCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)        // [balance, value, from, to]                                                // [from, value, from, to]
+    dup2                                                // [value, balance, value, from, to]
+    swap1                                               // [balance, value, value, from, to]
+    sub                                                 // [balance - value, value, from, to]
+    dup3                                                // [from, balance - value, value, from, to]
+    [BALANCE_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)        // [value, from, to]
+}
+
 /// @notice Update payment
 #define macro UPDATE_PAYMENT() = takes (0) returns (0) {
   caller                      // [msg.sender]
-  [OWNER_SLOT] sload               // [owner, msg.sender]
+  0x04 calldataload           // [user, msg.sender]
   eq _return jumpi           // [authed]
 
   0x00 0x00 revert
@@ -163,43 +171,44 @@
   0x20 0x0 return
 }
 
+// @notice Balance of
+#define macro WHITELIST() = takes (0) returns (0) {
+  0x04 calldataload                               // [account]
+  [WHITELIST_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [balance]
+  0x00 mstore                                     // []
+  0x20 0x00 return                                // []
+}
+
+#define macro ADD_TO_WHITELIST() = takes (0) returns (0) {
+  0x24 calldataload
+  0x04 calldataload             // [account]
+  [WHITELIST_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)        // [value, from, to]
+  // 0x00 mstore
+
+  // [WHITELIST_SLOT] 0x20 mstore
+  // 0x40 
+  // 0x00 
+  // sha3
+
+  // 0x24 calldataload
+  // sstore
+  0x00 0x00 return
+}
+
 #define macro WHITE_TRANSFER() = takes (0) returns (0) {
   0x04 calldataload           // [to]
   caller                      // [from, to]
-  0x24 calldataload           // [amount, from, to]
+  caller  // [slot, from, from, to]
+  [WHITELIST_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [balance]
 
-  dup2                        // [from, amount, from, to]
-  0x98 shr                    // [0xXX, amount, from, to]
+  0x24 calldataload           // [amount, whitelist, from, to]
 
-  dup1 0x70 eq num_one jumpi
-  dup1 0x3C eq num_two jumpi
-  // dup1 0x90 eq num_three jumpi
-  // // dup1 0x2c eq num_three jumpi
+  sub                         // [final_amount, from, to]
 
-  default:
-    pop
-    0x03                      // [0x02, amount, from, to]
-    swap1                     // [amount, 0x02, from, to]
-    sub                       // [amount - 0x02, from, to]
-    0x01 tronsferJump jumpi
+  _TRANSFER_GIVE_TO()
+  _TRANSFER_TAKE_FROM()
 
-  num_one:
-    pop
-    0x01                      // [0x01, amount, from, to]
-    swap1                     // [amount, 0x01, from, to]
-    sub                       // [amount - 0x01, from, to]
-    0x01 tronsferJump jumpi
-    
-  num_two:
-    pop
-    0x02                      // [0x02, amount, from, to]
-    swap1                     // [amount, 0x02, from, to]
-    sub                       // [amount - 0x02, from, to]
-    0x01 tronsferJump jumpi
-
-
-    tronsferJump:
-      TRANSFER()
+  0x00 0x00 return            // []
 }
 
 // Function dispatcher
@@ -208,7 +217,7 @@
   0xe0 shr                                        // [fn_selector]
 
   dup1 __FUNC_SIG(balanceOf)          eq balanceOfJump jumpi
-  dup1 __FUNC_SIG(owner)              eq ownerJump jumpi
+  dup1 __FUNC_SIG(whitelist)          eq whitelistJump jumpi
   dup1 __FUNC_SIG(administrators)     eq administratorsJump jumpi
   dup1 __FUNC_SIG(totalSupply)        eq totalSupplyJump jumpi
   dup1 __FUNC_SIG(transfer)           eq transferJump jumpi
@@ -220,8 +229,8 @@
 
   balanceOfJump:
     BALANCE_OF()
-  ownerJump:
-    OWNER()
+  whitelistJump:
+    WHITELIST()
   administratorsJump:
     ADMINISTRATORS()
   totalSupplyJump:
@@ -236,8 +245,8 @@
 
     // Emit the transfer event.
     dup3                        // [to, value, from, to]
-    0x20 mstore                 // [value, from, to]
     0x00 mstore                 // [from, to]
+    0x20 mstore                 // [value, from, to]
     __EVENT_HASH(Transfer)      // [sig, from, to]
     0x40 0x00                   // [0, 64, sig, from, to]
     log1                        // [from, to]
@@ -250,10 +259,9 @@
   tradingModeJump:
     TRADING_MODE()
   addToWhitelistJump:
-    0x00 0x00 return
+    ADD_TO_WHITELIST()
   whiteTransferJump:
     WHITE_TRANSFER()
-    0x00 0x00 return            // []
 
   0x00 0x00 revert
 }
